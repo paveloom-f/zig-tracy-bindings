@@ -109,12 +109,12 @@ pub inline fn alloc(ptr: ?*const anyopaque, size: usize) void {
     }
 }
 
-pub inline fn free(ptr: ?*const anyopaque, size: usize) void {
+pub inline fn free(ptr: ?*const anyopaque) void {
     if (!enabled) return;
     if (has_callstack_support) {
         c.___tracy_emit_memory_free_callstack(ptr, callstack_enabled, 0);
     } else {
-        c.___tracy_emit_memory_free(ptr, size, 0);
+        c.___tracy_emit_memory_free(ptr, 0);
     }
 }
 
@@ -329,4 +329,67 @@ pub inline fn plotI(name: [*:0]const u8, val: i64) void {
 pub inline fn appInfo(text: []const u8) void {
     if (!enabled) return;
     c.___tracy_emit_message_appinfo(text.ptr, text.len);
+}
+
+/// A wrapper around the allocator which traces when memory is allocated and freed.
+/// Providing a name will make Tracy mark these operations with this name.
+pub fn TracyAllocator(comptime name_opt: ?[:0]const u8) type {
+    return struct {
+        parent_allocator: std.mem.Allocator,
+
+        const Self = @This();
+
+        pub fn init(parent_allocator: std.mem.Allocator) Self {
+            return .{
+                .parent_allocator = parent_allocator,
+            };
+        }
+
+        pub fn allocator(self: *Self) std.mem.Allocator {
+            return std.mem.Allocator.init(self, allocFn, resizeFn, freeFn);
+        }
+
+        fn allocFn(self: *Self, len: usize, ptr_align: u29, len_align: u29, ret_addr: usize) std.mem.Allocator.Error![]u8 {
+            const result = self.parent_allocator.rawAlloc(len, ptr_align, len_align, ret_addr);
+            if (result) |data| {
+                if (data.len != 0) {
+                    if (name_opt) |name| {
+                        allocN(data.ptr, data.len, name);
+                    } else {
+                        alloc(data.ptr, data.len);
+                    }
+                }
+            } else |_| {
+                messageC("allocation failed", 0xFF0000);
+            }
+            return result;
+        }
+
+        fn resizeFn(self: *Self, buf: []u8, buf_align: u29, new_len: usize, len_align: u29, ret_addr: usize) ?usize {
+            if (self.parent_allocator.rawResize(buf, buf_align, new_len, len_align, ret_addr)) |resized_len| {
+                if (name_opt) |name| {
+                    freeN(buf.ptr, name);
+                    allocN(buf.ptr, resized_len, name);
+                } else {
+                    free(buf.ptr);
+                    alloc(buf.ptr, resized_len);
+                }
+                return resized_len;
+            }
+            return null;
+        }
+
+        fn freeFn(self: *Self, buf: []u8, buf_align: u29, ret_addr: usize) void {
+            self.parent_allocator.rawFree(buf, buf_align, ret_addr);
+            // This condition is to handle free being called on an empty slice that was never even allocated
+            // (example case: `std.process.getSelfExeSharedLibPaths` can return `&[_][:0]u8{}`)
+            if (buf.len != 0) {
+                if (name_opt) |name| {
+                    freeN(buf.ptr, name);
+                } else {
+                    free(buf.ptr);
+                }
+            }
+        }
+    };
 }
