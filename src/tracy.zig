@@ -11,7 +11,7 @@ const Src = std.builtin.SourceLocation;
 /// Is Tracy integration enabled?
 pub const enabled = !builtin.is_test and build_options.tracy;
 
-/// Forced call stack depth
+/// Forced call stack capture depth
 pub const forced_depth = build_options.tracy_depth;
 
 /// Tracy's C header
@@ -54,8 +54,14 @@ pub const ZoneCtx = struct {
 /// Initialize a zone context
 inline fn initZone(comptime src: Src, name: ?[*:0]const u8, color: u32, depth: c_int) ZoneCtx {
     if (!enabled) return ZoneCtx{ .zone = {} };
+    // Tracy uses pointer identity to identify contexts.
+    // The `src` parameter being comptime ensures that each
+    // zone gets its own unique global location for this struct.
+    const static = struct {
+        var loc: c.___tracy_source_location_data = undefined;
+    };
     // Define source location data
-    const location = c.___tracy_source_location_data{
+    static.loc = c.___tracy_source_location_data{
         .name = name,
         .function = src.fn_name.ptr,
         .file = src.file.ptr,
@@ -64,9 +70,9 @@ inline fn initZone(comptime src: Src, name: ?[*:0]const u8, color: u32, depth: c
     };
     // Create a zone
     const zone = if (depth != 0)
-        c.___tracy_emit_zone_begin_callstack(&location, depth, 1)
+        c.___tracy_emit_zone_begin_callstack(&static.loc, depth, 1)
     else
-        c.___tracy_emit_zone_begin(&location, 1);
+        c.___tracy_emit_zone_begin(&static.loc, 1);
     // Return a zone context
     return ZoneCtx{ .zone = zone };
 }
@@ -91,22 +97,22 @@ pub inline fn ZoneNC(comptime src: Src, name: [*:0]const u8, color: u32) ZoneCtx
     return initZone(src, name, color, forced_depth);
 }
 
-/// Mark a zone with a specific call stack depth
+/// Mark a zone with a specific call stack capture depth
 pub inline fn ZoneS(comptime src: Src, depth: i32) ZoneCtx {
     return initZone(src, null, 0, depth);
 }
 
-/// Mark a zone with a specific name and call stack depth
+/// Mark a zone with a specific name and call stack capture depth
 pub inline fn ZoneNS(comptime src: Src, name: [*:0]const u8, depth: i32) ZoneCtx {
     return initZone(src, name, 0, depth);
 }
 
-/// Mark a zone with a specific color and call stack depth
+/// Mark a zone with a specific color and call stack capture depth
 pub inline fn ZoneCS(comptime src: Src, color: u32, depth: i32) ZoneCtx {
     return initZone(src, null, color, depth);
 }
 
-/// Mark a zone with a specific name, color, and call stack depth
+/// Mark a zone with a specific name, color, and call stack capture depth
 pub inline fn ZoneNCS(comptime src: Src, name: [*:0]const u8, color: u32, depth: i32) ZoneCtx {
     return initZone(src, name, color, depth);
 }
@@ -155,7 +161,7 @@ pub inline fn secureFree(ptr: ?*const anyopaque, size: usize) void {
     }
 }
 
-/// Mark a memory allocation event with a specific call stack depth
+/// Mark a memory allocation event with a specific call stack capture depth
 pub inline fn allocS(ptr: ?*const anyopaque, size: usize, depth: c_int) void {
     if (!enabled) return;
     if (depth != 0) {
@@ -165,7 +171,7 @@ pub inline fn allocS(ptr: ?*const anyopaque, size: usize, depth: c_int) void {
     }
 }
 
-/// Mark a memory deallocation event with a specific call stack depth
+/// Mark a memory deallocation event with a specific call stack capture depth
 pub inline fn freeS(ptr: ?*const anyopaque, depth: c_int) void {
     if (!enabled) return;
     if (depth != 0) {
@@ -175,7 +181,7 @@ pub inline fn freeS(ptr: ?*const anyopaque, depth: c_int) void {
     }
 }
 
-/// Mark a secure memory allocation event with a specific call stack depth
+/// Mark a secure memory allocation event with a specific call stack capture depth
 ///
 /// Won't crash if the profiler was no longer available.
 pub inline fn secureAllocS(ptr: ?*const anyopaque, size: usize, depth: c_int) void {
@@ -187,7 +193,7 @@ pub inline fn secureAllocS(ptr: ?*const anyopaque, size: usize, depth: c_int) vo
     }
 }
 
-/// Mark a secure memory deallocation event with a specific call stack depth
+/// Mark a secure memory deallocation event with a specific call stack capture depth
 ///
 /// Won't crash if the profiler was no longer available.
 pub inline fn secureFreeS(ptr: ?*const anyopaque, depth: c_int) void {
@@ -243,7 +249,7 @@ pub inline fn secureFreeN(ptr: ?*const anyopaque, name: [*:0]const u8) void {
     }
 }
 
-/// Mark a memory allocation event with a specific name and call stack depth
+/// Mark a memory allocation event with a specific name and call stack capture depth
 pub inline fn allocNS(ptr: ?*const anyopaque, size: usize, depth: c_int, name: [*:0]const u8) void {
     if (!enabled) return;
     if (depth != 0) {
@@ -253,7 +259,7 @@ pub inline fn allocNS(ptr: ?*const anyopaque, size: usize, depth: c_int, name: [
     }
 }
 
-/// Mark a memory deallocation event with a specific name and call stack depth
+/// Mark a memory deallocation event with a specific name and call stack capture depth
 pub inline fn freeNS(ptr: ?*const anyopaque, depth: c_int, name: [*:0]const u8) void {
     if (!enabled) return;
     if (depth != 0) {
@@ -263,7 +269,7 @@ pub inline fn freeNS(ptr: ?*const anyopaque, depth: c_int, name: [*:0]const u8) 
     }
 }
 
-/// Mark a secure memory allocation event with a specific name and call stack depth
+/// Mark a secure memory allocation event with a specific name and call stack capture depth
 ///
 /// Won't crash if the profiler was no longer available.
 pub inline fn secureAllocNS(ptr: ?*const anyopaque, size: usize, depth: c_int, name: [*:0]const u8) void {
@@ -275,7 +281,7 @@ pub inline fn secureAllocNS(ptr: ?*const anyopaque, size: usize, depth: c_int, n
     }
 }
 
-/// Mark a secure memory deallocation event with a specific name and call stack depth
+/// Mark a secure memory deallocation event with a specific name and call stack capture depth
 ///
 /// Won't crash if the profiler was no longer available.
 pub inline fn secureFreeNS(ptr: ?*const anyopaque, depth: c_int, name: [*:0]const u8) void {
@@ -293,7 +299,7 @@ pub inline fn message(text: [:0]const u8) void {
     c.___tracy_emit_message(text.ptr, text.len, forced_depth);
 }
 
-/// Send a message with a specific call stack depth
+/// Send a message with a specific call stack capture depth
 pub inline fn messageS(text: [:0]const u8, depth: c_int) void {
     if (!enabled) return;
     c.___tracy_emit_message(text.ptr, text.len, depth);
@@ -305,7 +311,7 @@ pub inline fn messageC(text: [:0]const u8, color: u32) void {
     c.___tracy_emit_messageC(text.ptr, text.len, color, forced_depth);
 }
 
-/// Send a message with a specific color and call stack depth
+/// Send a message with a specific color and call stack capture depth
 pub inline fn messageCS(text: [:0]const u8, color: u32, depth: c_int) void {
     if (!enabled) return;
     c.___tracy_emit_messageC(text.ptr, text.len, color, depth);
