@@ -17,10 +17,16 @@ pub fn build(b: *std.build.Builder) void {
         "tracy",
         "Path to Tracy source (enables Tracy integration)",
     );
+    const tracy_depth_option = b.option(
+        c_int,
+        "tracy-depth",
+        "Forces a specific call stack depth if specified",
+    ) orelse 0;
     // Add this option to a separate group of options
     const exe_options = b.addOptions();
     exe.addOptions("build_options", exe_options);
     exe_options.addOption(bool, "tracy", tracy_path_option != null);
+    exe_options.addOption(c_int, "tracy_depth", tracy_depth_option);
     // If the path to Tracy's source code is specified
     if (tracy_path_option) |tracy_path| {
         // Define the path to the Tracy's client source file

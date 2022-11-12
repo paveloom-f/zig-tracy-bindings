@@ -19,6 +19,12 @@ zig build run -Dtracy=/path/to/tracy -Drelease-fast
 
 to execute the [example program](src/main.zig).
 
+You can also specify the call stack depth globally:
+
+```bash
+zig build run -Dtracy=/path/to/tracy -Dtracy-depth=10 -Drelease-fast
+```
+
 #### Integrate
 
 To integrate Tracy in your project:
