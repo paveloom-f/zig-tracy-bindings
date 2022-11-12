@@ -12,7 +12,7 @@ const Src = std.builtin.SourceLocation;
 pub const enabled = !builtin.is_test and build_options.tracy;
 
 /// Forced call stack capture depth
-pub const forced_depth = build_options.tracy_depth;
+pub const default_depth = build_options.tracy_depth;
 
 /// Tracy's C header
 const c = if (enabled) @cImport({
@@ -79,49 +79,49 @@ inline fn initZone(comptime src: Src, name: ?[*:0]const u8, color: u32, depth: c
 
 /// Mark a zone
 pub inline fn Zone(comptime src: Src) ZoneCtx {
-    return initZone(src, null, 0, forced_depth);
+    return initZone(src, null, 0, default_depth);
 }
 
 /// Mark a zone with a specific name
 pub inline fn ZoneN(comptime src: Src, name: [*:0]const u8) ZoneCtx {
-    return initZone(src, name, 0, forced_depth);
+    return initZone(src, name, 0, default_depth);
 }
 
 /// Mark a zone with a specific color
 pub inline fn ZoneC(comptime src: Src, color: u32) ZoneCtx {
-    return initZone(src, null, color, forced_depth);
+    return initZone(src, null, color, default_depth);
 }
 
 /// Mark a zone with a specific name and color
 pub inline fn ZoneNC(comptime src: Src, name: [*:0]const u8, color: u32) ZoneCtx {
-    return initZone(src, name, color, forced_depth);
+    return initZone(src, name, color, default_depth);
 }
 
 /// Mark a zone with a specific call stack capture depth
-pub inline fn ZoneS(comptime src: Src, depth: i32) ZoneCtx {
+pub inline fn ZoneS(comptime src: Src, depth: c_int) ZoneCtx {
     return initZone(src, null, 0, depth);
 }
 
 /// Mark a zone with a specific name and call stack capture depth
-pub inline fn ZoneNS(comptime src: Src, name: [*:0]const u8, depth: i32) ZoneCtx {
+pub inline fn ZoneNS(comptime src: Src, name: [*:0]const u8, depth: c_int) ZoneCtx {
     return initZone(src, name, 0, depth);
 }
 
 /// Mark a zone with a specific color and call stack capture depth
-pub inline fn ZoneCS(comptime src: Src, color: u32, depth: i32) ZoneCtx {
+pub inline fn ZoneCS(comptime src: Src, color: u32, depth: c_int) ZoneCtx {
     return initZone(src, null, color, depth);
 }
 
 /// Mark a zone with a specific name, color, and call stack capture depth
-pub inline fn ZoneNCS(comptime src: Src, name: [*:0]const u8, color: u32, depth: i32) ZoneCtx {
+pub inline fn ZoneNCS(comptime src: Src, name: [*:0]const u8, color: u32, depth: c_int) ZoneCtx {
     return initZone(src, name, color, depth);
 }
 
 /// Mark a memory allocation event
 pub inline fn alloc(ptr: ?*const anyopaque, size: usize) void {
     if (!enabled) return;
-    if (forced_depth != 0) {
-        c.___tracy_emit_memory_alloc_callstack(ptr, size, forced_depth, 0);
+    if (default_depth != 0) {
+        c.___tracy_emit_memory_alloc_callstack(ptr, size, default_depth, 0);
     } else {
         c.___tracy_emit_memory_alloc(ptr, size, 0);
     }
@@ -130,8 +130,8 @@ pub inline fn alloc(ptr: ?*const anyopaque, size: usize) void {
 /// Mark a memory deallocation event
 pub inline fn free(ptr: ?*const anyopaque) void {
     if (!enabled) return;
-    if (forced_depth != 0) {
-        c.___tracy_emit_memory_free_callstack(ptr, forced_depth, 0);
+    if (default_depth != 0) {
+        c.___tracy_emit_memory_free_callstack(ptr, default_depth, 0);
     } else {
         c.___tracy_emit_memory_free(ptr, 0);
     }
@@ -142,8 +142,8 @@ pub inline fn free(ptr: ?*const anyopaque) void {
 /// Won't crash if the profiler was no longer available.
 pub inline fn secureAlloc(ptr: ?*const anyopaque, size: usize) void {
     if (!enabled) return;
-    if (forced_depth != 0) {
-        c.___tracy_emit_memory_alloc_callstack(ptr, size, forced_depth, 1);
+    if (default_depth != 0) {
+        c.___tracy_emit_memory_alloc_callstack(ptr, size, default_depth, 1);
     } else {
         c.___tracy_emit_memory_alloc(ptr, size, 1);
     }
@@ -154,8 +154,8 @@ pub inline fn secureAlloc(ptr: ?*const anyopaque, size: usize) void {
 /// Won't crash if the profiler was no longer available.
 pub inline fn secureFree(ptr: ?*const anyopaque, size: usize) void {
     if (!enabled) return;
-    if (forced_depth) {
-        c.___tracy_emit_memory_free_callstack(ptr, forced_depth, 1);
+    if (default_depth) {
+        c.___tracy_emit_memory_free_callstack(ptr, default_depth, 1);
     } else {
         c.___tracy_emit_memory_free(ptr, size, 1);
     }
@@ -208,8 +208,8 @@ pub inline fn secureFreeS(ptr: ?*const anyopaque, depth: c_int) void {
 /// Mark a memory allocation event with a specific name
 pub inline fn allocN(ptr: ?*const anyopaque, size: usize, name: [*:0]const u8) void {
     if (!enabled) return;
-    if (forced_depth != 0) {
-        c.___tracy_emit_memory_alloc_callstack_named(ptr, size, forced_depth, 0, name);
+    if (default_depth != 0) {
+        c.___tracy_emit_memory_alloc_callstack_named(ptr, size, default_depth, 0, name);
     } else {
         c.___tracy_emit_memory_alloc_named(ptr, size, 0, name);
     }
@@ -218,8 +218,8 @@ pub inline fn allocN(ptr: ?*const anyopaque, size: usize, name: [*:0]const u8) v
 /// Mark a memory deallocation event with a specific name
 pub inline fn freeN(ptr: ?*const anyopaque, name: [*:0]const u8) void {
     if (!enabled) return;
-    if (forced_depth != 0) {
-        c.___tracy_emit_memory_free_callstack_named(ptr, forced_depth, 0, name);
+    if (default_depth != 0) {
+        c.___tracy_emit_memory_free_callstack_named(ptr, default_depth, 0, name);
     } else {
         c.___tracy_emit_memory_free_named(ptr, 0, name);
     }
@@ -230,8 +230,8 @@ pub inline fn freeN(ptr: ?*const anyopaque, name: [*:0]const u8) void {
 /// Won't crash if the profiler was no longer available.
 pub inline fn secureAllocN(ptr: ?*const anyopaque, size: usize, name: [*:0]const u8) void {
     if (!enabled) return;
-    if (forced_depth != 0) {
-        c.___tracy_emit_memory_alloc_callstack_named(ptr, size, forced_depth, 1, name);
+    if (default_depth != 0) {
+        c.___tracy_emit_memory_alloc_callstack_named(ptr, size, default_depth, 1, name);
     } else {
         c.___tracy_emit_memory_alloc_named(ptr, size, 1, name);
     }
@@ -242,15 +242,15 @@ pub inline fn secureAllocN(ptr: ?*const anyopaque, size: usize, name: [*:0]const
 /// Won't crash if the profiler was no longer available.
 pub inline fn secureFreeN(ptr: ?*const anyopaque, name: [*:0]const u8) void {
     if (!enabled) return;
-    if (forced_depth != 0) {
-        c.___tracy_emit_memory_free_callstack_named(ptr, forced_depth, 1, name);
+    if (default_depth != 0) {
+        c.___tracy_emit_memory_free_callstack_named(ptr, default_depth, 1, name);
     } else {
         c.___tracy_emit_memory_free_named(ptr, 1, name);
     }
 }
 
 /// Mark a memory allocation event with a specific name and call stack capture depth
-pub inline fn allocNS(ptr: ?*const anyopaque, size: usize, depth: c_int, name: [*:0]const u8) void {
+pub inline fn allocNS(ptr: ?*const anyopaque, size: usize, name: [*:0]const u8, depth: c_int) void {
     if (!enabled) return;
     if (depth != 0) {
         c.___tracy_emit_memory_alloc_callstack_named(ptr, size, depth, 0, name);
@@ -260,7 +260,7 @@ pub inline fn allocNS(ptr: ?*const anyopaque, size: usize, depth: c_int, name: [
 }
 
 /// Mark a memory deallocation event with a specific name and call stack capture depth
-pub inline fn freeNS(ptr: ?*const anyopaque, depth: c_int, name: [*:0]const u8) void {
+pub inline fn freeNS(ptr: ?*const anyopaque, name: [*:0]const u8, depth: c_int) void {
     if (!enabled) return;
     if (depth != 0) {
         c.___tracy_emit_memory_free_callstack_named(ptr, depth, 0, name);
@@ -272,7 +272,7 @@ pub inline fn freeNS(ptr: ?*const anyopaque, depth: c_int, name: [*:0]const u8) 
 /// Mark a secure memory allocation event with a specific name and call stack capture depth
 ///
 /// Won't crash if the profiler was no longer available.
-pub inline fn secureAllocNS(ptr: ?*const anyopaque, size: usize, depth: c_int, name: [*:0]const u8) void {
+pub inline fn secureAllocNS(ptr: ?*const anyopaque, size: usize, name: [*:0]const u8, depth: c_int) void {
     if (!enabled) return;
     if (depth != 0) {
         c.___tracy_emit_memory_alloc_callstack_named(ptr, size, depth, 1, name);
@@ -284,7 +284,7 @@ pub inline fn secureAllocNS(ptr: ?*const anyopaque, size: usize, depth: c_int, n
 /// Mark a secure memory deallocation event with a specific name and call stack capture depth
 ///
 /// Won't crash if the profiler was no longer available.
-pub inline fn secureFreeNS(ptr: ?*const anyopaque, depth: c_int, name: [*:0]const u8) void {
+pub inline fn secureFreeNS(ptr: ?*const anyopaque, name: [*:0]const u8, depth: c_int) void {
     if (!enabled) return;
     if (depth != 0) {
         c.___tracy_emit_memory_free_callstack_named(ptr, depth, 1, name);
@@ -296,7 +296,7 @@ pub inline fn secureFreeNS(ptr: ?*const anyopaque, depth: c_int, name: [*:0]cons
 /// Send a message
 pub inline fn message(text: [:0]const u8) void {
     if (!enabled) return;
-    c.___tracy_emit_message(text.ptr, text.len, forced_depth);
+    c.___tracy_emit_message(text.ptr, text.len, default_depth);
 }
 
 /// Send a message with a specific call stack capture depth
@@ -308,7 +308,7 @@ pub inline fn messageS(text: [:0]const u8, depth: c_int) void {
 /// Send a message with a specific color
 pub inline fn messageC(text: [:0]const u8, color: u32) void {
     if (!enabled) return;
-    c.___tracy_emit_messageC(text.ptr, text.len, color, forced_depth);
+    c.___tracy_emit_messageC(text.ptr, text.len, color, default_depth);
 }
 
 /// Send a message with a specific color and call stack capture depth
@@ -372,8 +372,10 @@ pub inline fn plotInt(name: [*:0]const u8, val: i64) void {
 }
 
 /// A wrapper around the allocator which traces when memory is allocated and freed.
+///
 /// Providing a name will make Tracy mark these operations with this name.
-pub fn TracyAllocator(comptime name_opt: ?[:0]const u8) type {
+/// Providing a call stack capture depth will override the default one.
+pub fn TracyAllocator(comptime name_opt: ?[:0]const u8, comptime depth_opt: ?c_int) type {
     return struct {
         /// Underlying allocator
         parent_allocator: std.mem.Allocator,
@@ -394,13 +396,21 @@ pub fn TracyAllocator(comptime name_opt: ?[:0]const u8) type {
             if (result) |data| {
                 if (data.len != 0) {
                     if (name_opt) |name| {
-                        allocN(data.ptr, data.len, name);
+                        if (depth_opt) |depth| {
+                            allocNS(data.ptr, data.len, name, depth);
+                        } else {
+                            allocN(data.ptr, data.len, name);
+                        }
                     } else {
-                        alloc(data.ptr, data.len);
+                        if (depth_opt) |depth| {
+                            allocS(data.ptr, data.len, depth);
+                        } else {
+                            alloc(data.ptr, data.len);
+                        }
                     }
                 }
             } else |_| {
-                messageC("allocation failed", 0xFF0000);
+                messageC("Allocation failed!", 0xFF0000);
             }
             return result;
         }
@@ -408,11 +418,21 @@ pub fn TracyAllocator(comptime name_opt: ?[:0]const u8) type {
         fn resizeFn(self: *Self, buf: []u8, buf_align: u29, new_len: usize, len_align: u29, ret_addr: usize) ?usize {
             if (self.parent_allocator.rawResize(buf, buf_align, new_len, len_align, ret_addr)) |resized_len| {
                 if (name_opt) |name| {
-                    freeN(buf.ptr, name);
-                    allocN(buf.ptr, resized_len, name);
+                    if (depth_opt) |depth| {
+                        freeNS(buf.ptr, name, depth);
+                        allocNS(buf.ptr, resized_len, name, depth);
+                    } else {
+                        freeN(buf.ptr, name);
+                        allocN(buf.ptr, resized_len, name);
+                    }
                 } else {
-                    free(buf.ptr);
-                    alloc(buf.ptr, resized_len);
+                    if (depth_opt) |depth| {
+                        freeS(buf.ptr, depth);
+                        allocS(buf.ptr, resized_len, depth);
+                    } else {
+                        free(buf.ptr);
+                        alloc(buf.ptr, resized_len);
+                    }
                 }
                 return resized_len;
             }
@@ -425,9 +445,17 @@ pub fn TracyAllocator(comptime name_opt: ?[:0]const u8) type {
             // (example case: `std.process.getSelfExeSharedLibPaths` can return `&[_][:0]u8{}`)
             if (buf.len != 0) {
                 if (name_opt) |name| {
-                    freeN(buf.ptr, name);
+                    if (depth_opt) |depth| {
+                        freeNS(buf.ptr, name, depth);
+                    } else {
+                        freeN(buf.ptr, name);
+                    }
                 } else {
-                    free(buf.ptr);
+                    if (depth_opt) |depth| {
+                        freeS(buf.ptr, depth);
+                    } else {
+                        free(buf.ptr);
+                    }
                 }
             }
         }

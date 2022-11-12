@@ -20,7 +20,7 @@ pub fn build(b: *std.build.Builder) void {
     const tracy_depth_option = b.option(
         c_int,
         "tracy-depth",
-        "Forces a specific call stack depth if specified",
+        "Overrides Tracy's default call stack capture depth",
     ) orelse 0;
     // Add this option to a separate group of options
     const exe_options = b.addOptions();

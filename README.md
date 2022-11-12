@@ -19,7 +19,7 @@ zig build run -Dtracy=/path/to/tracy -Drelease-fast
 
 to execute the [example program](src/main.zig).
 
-You can also specify the call stack capture depth globally:
+You can also override the default call stack capture depth:
 
 ```bash
 zig build run -Dtracy=/path/to/tracy -Dtracy-depth=10 -Drelease-fast

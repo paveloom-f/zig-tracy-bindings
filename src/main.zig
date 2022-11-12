@@ -58,7 +58,7 @@ pub fn main() !void {
     // Prepare an array list, so we can demonstrate the allocator wrapper
     var buffer: [1000]u8 = undefined;
     var fba = std.heap.FixedBufferAllocator.init(&buffer);
-    var t_fba = tracy.TracyAllocator(null).init(fba.allocator());
+    var t_fba = tracy.TracyAllocator(null, 5).init(fba.allocator());
     var list = std.ArrayList(u8).init(t_fba.allocator());
     defer list.deinit();
     // Prepare counters (we print digits from 1 to 10)
