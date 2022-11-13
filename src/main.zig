@@ -12,6 +12,7 @@ fn print(c: u8) void {
     defer zone.end();
 
     std.debug.print("{}", .{c});
+    tracy.plotInt("Counter", c);
 }
 
 /// Add a digit to the string and the list, increment the counter
@@ -22,7 +23,6 @@ fn increment(c: *u8) void {
     c.* += 1;
 
     tracy.messageC("Counter incremented!", 0x00FF00);
-    tracy.plotInt("Counter", c.*);
 }
 
 /// Append to the list
@@ -52,9 +52,6 @@ fn reset(c: *u8, list: *std.ArrayList(u8)) void {
 pub fn main() !void {
     // Send some application information
     tracy.appInfo("Profiling the example function");
-    // Mark the main function as a single frame
-    tracy.frameMarkNamed("Main");
-    defer tracy.frameMarkEnd("Main");
     // Prepare an array list, so we can demonstrate the allocator wrapper
     var buffer: [1000]u8 = undefined;
     var fba = std.heap.FixedBufferAllocator.init(&buffer);
@@ -81,5 +78,8 @@ pub fn main() !void {
         }
         // Sleep for 0.25 seconds
         std.time.sleep(250_000_000);
+        // We don't really have frames here, but
+        // we will use this loop to imitate them
+        tracy.frameMarkNamed("Iteration");
     }
 }
