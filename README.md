@@ -28,8 +28,8 @@ zig build run -Dtracy=/path/to/tracy -Dtracy-depth=10 -Drelease-fast
 #### Integrate
 
 To integrate Tracy in your project:
-1) Copy the [`tracy.zig`](src/tracy.zig) file to your project;
-2) Edit your [build script](build.zig);
+1) Copy the [`libs/tracy/tracy.zig`](libs/tracy/tracy.zig) file to your project;
+2) Edit your build script (see the [example build script](build.zig));
 3) Add Tracy calls in your source code (see the [example program](src/main.zig));
 4) Provide the path to Tracy's source code via a build option (see example above)
 

@@ -11,6 +11,16 @@ pub fn build(b: *std.build.Builder) void {
     exe.setTarget(target);
     exe.setBuildMode(mode);
     exe.install();
+    // Define the run step
+    const run_cmd = exe.run();
+    run_cmd.step.dependOn(b.getInstallStep());
+    if (b.args) |args| {
+        run_cmd.addArgs(args);
+    }
+    // Add the run step to the builder
+    const run_step = b.step("run", "Run the app");
+    run_step.dependOn(&run_cmd.step);
+
     // Create an option for the path to Tracy's source code
     const tracy_path_option = b.option(
         []const u8,
@@ -22,11 +32,19 @@ pub fn build(b: *std.build.Builder) void {
         "tracy-depth",
         "Overrides Tracy's default call stack capture depth",
     ) orelse 0;
-    // Add this option to a separate group of options
-    const exe_options = b.addOptions();
-    exe.addOptions("build_options", exe_options);
-    exe_options.addOption(bool, "tracy", tracy_path_option != null);
-    exe_options.addOption(c_int, "tracy_depth", tracy_depth_option);
+    // Add these options to a separate group of options
+    const tracy_options = b.addOptions();
+    exe.addOptions("tracy_options", tracy_options);
+    tracy_options.addOption(bool, "tracy", tracy_path_option != null);
+    tracy_options.addOption(c_int, "tracy_depth", tracy_depth_option);
+    // Link the Tracy package to the executable
+    exe.addPackage(std.build.Pkg{
+        .name = "tracy",
+        .source = .{ .path = "libs/tracy/tracy.zig" },
+        .dependencies = &[_]std.build.Pkg{
+            .{ .name = "tracy_options", .source = tracy_options.getSource() },
+        },
+    });
     // If the path to Tracy's source code is specified
     if (tracy_path_option) |tracy_path| {
         // Define the path to the Tracy's client source file
@@ -49,13 +67,4 @@ pub fn build(b: *std.build.Builder) void {
         exe.linkLibCpp();
         exe.linkLibC();
     }
-    // Define the run step
-    const run_cmd = exe.run();
-    run_cmd.step.dependOn(b.getInstallStep());
-    if (b.args) |args| {
-        run_cmd.addArgs(args);
-    }
-    // Add the run step to the builder
-    const run_step = b.step("run", "Run the app");
-    run_step.dependOn(&run_cmd.step);
 }

@@ -4,7 +4,7 @@
 //! We do many unnecessary things here just to demonstrate the Tracy integration.
 
 const std = @import("std");
-const tracy = @import("tracy.zig");
+const tracy = @import("tracy");
 
 /// Print the current digit
 fn print(c: u8) void {

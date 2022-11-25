@@ -5,14 +5,14 @@
 
 const std = @import("std");
 const builtin = @import("builtin");
-const build_options = @import("build_options");
+const tracy_options = @import("tracy_options");
 const Src = std.builtin.SourceLocation;
 
 /// Is Tracy integration enabled?
-pub const enabled = !builtin.is_test and build_options.tracy;
+pub const enabled = !builtin.is_test and tracy_options.tracy;
 
 /// Forced call stack capture depth
-pub const default_depth = build_options.tracy_depth;
+pub const default_depth = tracy_options.tracy_depth;
 
 /// Tracy's C header
 const c = if (enabled) @cImport({
