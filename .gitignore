@@ -1,3 +1,8 @@
 # Zig
 zig-cache
 zig-out
+
+# Zigmod
+.zigmod
+zigmod.lock
+deps.zig

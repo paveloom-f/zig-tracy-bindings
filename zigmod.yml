@@ -1,0 +1,15 @@
+id: c6i5w4o4dkapcgki44ilz46p05ioxceul2yaq9cbt7v5ag1o
+name: tracy
+main: src/tracy.zig
+license: MIT
+description: Zig integration for the Tracy profiler.
+dependencies:
+  - src: git https://github.com/wolfpld/tracy branch-master
+    c_include_dirs:
+      - public/tracy
+    c_source_files:
+      - public/TracyClient.cpp
+    c_source_flags:
+      - -DTRACY_ENABLE
+      - -fno-sanitize=undefined
+  - src: system_lib c++

@@ -1,0 +1,6 @@
+id: xzbgz87yb124nhkcra3udcsau4ovyu99x25qhn6xqmqsfe8z
+name: example
+license: MIT
+description: An example of using Tracy bindings for Zig.
+root_dependencies:
+  - src: local tracy ../

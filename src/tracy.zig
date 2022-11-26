@@ -5,8 +5,10 @@
 
 const std = @import("std");
 const builtin = @import("builtin");
-const tracy_options = @import("tracy_options");
 const Src = std.builtin.SourceLocation;
+
+/// Tracy options
+const tracy_options = @import("tracy_options");
 
 /// Is Tracy integration enabled?
 pub const enabled = !builtin.is_test and tracy_options.tracy;
