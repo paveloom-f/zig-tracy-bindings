@@ -390,59 +390,69 @@ pub fn TracyAllocator(comptime name_opt: ?[:0]const u8, comptime depth_opt: ?c_i
         }
         /// Initialize the allocator
         pub fn allocator(self: *Self) std.mem.Allocator {
-            return std.mem.Allocator.init(self, allocFn, resizeFn, freeFn);
+            return .{
+                .ptr = self,
+                .vtable = &.{
+                    .alloc = allocFn,
+                    .resize = resizeFn,
+                    .free = freeFn,
+                },
+            };
         }
         /// Allocate the memory
-        fn allocFn(self: *Self, len: usize, ptr_align: u29, len_align: u29, ret_addr: usize) std.mem.Allocator.Error![]u8 {
-            const result = self.parent_allocator.rawAlloc(len, ptr_align, len_align, ret_addr);
+        fn allocFn(ctx: *anyopaque, len: usize, log2_ptr_align: u8, ret_addr: usize) ?[*]u8 {
+            const self = @ptrCast(*Self, @alignCast(@alignOf(Self), ctx));
+            const result = self.parent_allocator.rawAlloc(len, log2_ptr_align, ret_addr);
             if (result) |data| {
-                if (data.len != 0) {
+                if (len != 0) {
                     if (name_opt) |name| {
                         if (depth_opt) |depth| {
-                            allocNS(data.ptr, data.len, name, depth);
+                            allocNS(data, len, name, depth);
                         } else {
-                            allocN(data.ptr, data.len, name);
+                            allocN(data, len, name);
                         }
                     } else {
                         if (depth_opt) |depth| {
-                            allocS(data.ptr, data.len, depth);
+                            allocS(data, len, depth);
                         } else {
-                            alloc(data.ptr, data.len);
+                            alloc(data, len);
                         }
                     }
                 }
-            } else |_| {
+            } else {
                 messageC("Allocation failed!", 0xFF0000);
             }
             return result;
         }
         /// Resize the memory
-        fn resizeFn(self: *Self, buf: []u8, buf_align: u29, new_len: usize, len_align: u29, ret_addr: usize) ?usize {
-            if (self.parent_allocator.rawResize(buf, buf_align, new_len, len_align, ret_addr)) |resized_len| {
+        fn resizeFn(ctx: *anyopaque, buf: []u8, log2_buf_align: u8, new_len: usize, ret_addr: usize) bool {
+            const self = @ptrCast(*Self, @alignCast(@alignOf(Self), ctx));
+            if (self.parent_allocator.rawResize(buf, log2_buf_align, new_len, ret_addr)) {
                 if (name_opt) |name| {
                     if (depth_opt) |depth| {
                         freeNS(buf.ptr, name, depth);
-                        allocNS(buf.ptr, resized_len, name, depth);
+                        allocNS(buf.ptr, new_len, name, depth);
                     } else {
                         freeN(buf.ptr, name);
-                        allocN(buf.ptr, resized_len, name);
+                        allocN(buf.ptr, new_len, name);
                     }
                 } else {
                     if (depth_opt) |depth| {
                         freeS(buf.ptr, depth);
-                        allocS(buf.ptr, resized_len, depth);
+                        allocS(buf.ptr, new_len, depth);
                     } else {
                         free(buf.ptr);
-                        alloc(buf.ptr, resized_len);
+                        alloc(buf.ptr, new_len);
                     }
                 }
-                return resized_len;
+                return true;
             }
-            return null;
+            return false;
         }
         /// Free the memory
-        fn freeFn(self: *Self, buf: []u8, buf_align: u29, ret_addr: usize) void {
-            self.parent_allocator.rawFree(buf, buf_align, ret_addr);
+        fn freeFn(ctx: *anyopaque, buf: []u8, log2_buf_align: u8, ret_addr: usize) void {
+            const self = @ptrCast(*Self, @alignCast(@alignOf(Self), ctx));
+            self.parent_allocator.rawFree(buf, log2_buf_align, ret_addr);
             // This condition is to handle free being called on an empty slice that was never even allocated
             // (example case: `std.process.getSelfExeSharedLibPaths` can return `&[_][:0]u8{}`)
             if (buf.len != 0) {
