@@ -355,6 +355,18 @@ pub inline fn frameImage(image: ?*const anyopaque, width: u16, height: u16, offs
     c.___tracy_emit_frame_image(image, width, height, offset, flip);
 }
 
+/// Enter the fiber with a specific name
+pub inline fn FiberEnter(name: [*:0]const u8) void {
+    if (!enabled) return;
+    c.___tracy_fiber_enter(name);
+}
+
+/// Leave the fiber
+pub inline fn FiberLeave() void {
+    if (!enabled) return;
+    c.___tracy_fiber_leave();
+}
+
 /// Plot a double-precision floating-point value
 pub inline fn plot(name: [*:0]const u8, val: f64) void {
     if (!enabled) return;

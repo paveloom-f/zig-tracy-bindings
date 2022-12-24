@@ -50,6 +50,9 @@ fn reset(c: *u8, list: *std.ArrayList(u8)) void {
 
 /// Run the program
 pub fn main() !void {
+    // Mark the main function as a fiber
+    tracy.FiberEnter("Main");
+    defer tracy.FiberLeave();
     // Send some application information
     tracy.appInfo("Profiling the example function");
     // Prepare an array list, so we can demonstrate the allocator wrapper
