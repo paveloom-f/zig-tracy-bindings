@@ -12,4 +12,15 @@ dependencies:
     c_source_flags:
       - -DTRACY_ENABLE
       - -fno-sanitize=undefined
+      # MinGW doesn't have all the newfangled windows features,
+      # so we need to pretend to have an older windows version.
+      - -D_WIN32_WINNT=0x601
   - src: system_lib c++
+  - src: system_lib Advapi32
+    only_os: windows
+  - src: system_lib User32
+    only_os: windows
+  - src: system_lib Ws2_32
+    only_os: windows
+  - src: system_lib DbgHelp
+    only_os: windows
